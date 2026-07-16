@@ -18,6 +18,18 @@ local Palette = {
     ["cyan"]   = Color3.fromRGB(0, 255, 255)
 }
 
+-- Таблица тем UI
+local Themes = {
+    ["classic"]      = Color3.fromRGB(192, 132, 252),
+    ["классический"] = Color3.fromRGB(192, 132, 252),
+    ["red"]          = Color3.fromRGB(255, 85, 85),
+    ["красный"]      = Color3.fromRGB(255, 85, 85),
+    ["mint"]         = Color3.fromRGB(85, 255, 170),
+    ["мятный"]       = Color3.fromRGB(85, 255, 170),
+    ["orange"]       = Color3.fromRGB(255, 170, 0),
+    ["оранжевый"]    = Color3.fromRGB(255, 170, 0)
+}
+
 local function GetColor(input)
     if type(input) == "string" then
         local lower = input:lower()
@@ -30,8 +42,12 @@ local function GetColor(input)
     return Color3.fromRGB(255, 255, 255)
 end
 
-function LuminorLib:CreateWindow(titleText, uiName, watermarkText)
+function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName)
     local Window = { Tabs = {}, TabButtons = {}, TabLines = {} }
+    
+    -- Определяем тему (по умолчанию Classic)
+    local selectedTheme = Themes[themeName and string.lower(themeName)] or Themes["classic"]
+    local darkTheme = Color3.new(selectedTheme.R * 0.2, selectedTheme.G * 0.2, selectedTheme.B * 0.2)
     
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = uiName or "LuminorLib_UI"
@@ -56,7 +72,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText)
     IntroGlow.Size = UDim2.new(1, 0, 1, 0)
     IntroGlow.BackgroundTransparency = 1
     IntroGlow.Text = "LN V1.0"
-    IntroGlow.TextColor3 = Color3.fromRGB(192, 132, 252)
+    IntroGlow.TextColor3 = selectedTheme
     IntroGlow.TextTransparency = 1
     IntroGlow.TextSize = 47
     IntroGlow.Font = Enum.Font.GothamBold
@@ -72,7 +88,20 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText)
     Frame_1.Parent = ScreenGui
 
     Instance.new("UICorner", Frame_1).CornerRadius = UDim.new(0, 14)
-    local stroke1 = Instance.new("UIStroke", Frame_1); stroke1.Color = Color3.fromRGB(51, 51, 51); stroke1.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    
+    -- Динамическая переливающаяся обводка (Wave) для главного окна
+    local stroke1 = Instance.new("UIStroke", Frame_1)
+    stroke1.Thickness = 2
+    stroke1.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke1.Color = Color3.fromRGB(255, 255, 255) -- Белый цвет, чтобы градиент отображался корректно
+    
+    local strokeGrad = Instance.new("UIGradient", stroke1)
+    strokeGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, darkTheme),
+        ColorSequenceKeypoint.new(0.5, selectedTheme),
+        ColorSequenceKeypoint.new(1, darkTheme)
+    })
+    strokeGrad.Rotation = 0
 
     local Shadow = Instance.new("ImageLabel")
     Shadow.AnchorPoint = Vector2.new(0.5, 0.5); Shadow.BackgroundTransparency = 1; Shadow.Position = UDim2.new(0.5, 0, 0.5, 15)
@@ -100,18 +129,24 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText)
 
     local Label_12 = Instance.new("TextLabel")
     Label_12.Position = UDim2.new(0, 14, 1, -37); Label_12.Size = UDim2.new(0, 87, 0, 24); Label_12.BackgroundTransparency = 1
-    Label_12.Text = watermarkText or "By DADILK"; Label_12.TextColor3 = Color3.fromRGB(192, 132, 252); Label_12.TextSize = 14
+    Label_12.Text = watermarkText or "By DADILK"; Label_12.TextColor3 = selectedTheme; Label_12.TextSize = 14
     Label_12.Font = Enum.Font.Ubuntu; Label_12.TextXAlignment = Enum.TextXAlignment.Left; Label_12.ZIndex = 12; Label_12.Parent = Frame_1
 
     local Label_15 = Instance.new("TextLabel")
     Label_15.Position = UDim2.new(0, 70, 0, 11); Label_15.Size = UDim2.new(0, 130, 0, 24); Label_15.BackgroundTransparency = 1
-    Label_15.Text = titleText or "Luminor"; Label_15.TextColor3 = Color3.fromRGB(192, 132, 252); Label_15.TextSize = 30
+    Label_15.Text = titleText or "Luminor"; Label_15.TextColor3 = selectedTheme; Label_15.TextSize = 30
     Label_15.Font = Enum.Font.Creepster; Label_15.TextXAlignment = Enum.TextXAlignment.Left; Label_15.ZIndex = 15; Label_15.Parent = Frame_1
 
     RunService.Heartbeat:Connect(function()
         local f = (math.sin(tick() * 1.5) + 1) / 2
-        Label_12.TextColor3 = Color3.new(f, f, f)
-        Label_15.TextColor3 = Color3.new(1 - f, 1 - f, 1 - f)
+        -- Текст пульсирует между белым и цветом темы
+        Label_12.TextColor3 = selectedTheme:Lerp(Color3.fromRGB(255, 255, 255), f)
+        Label_15.TextColor3 = selectedTheme:Lerp(Color3.fromRGB(255, 255, 255), 1 - f)
+        
+        -- Вращение переливающейся обводки
+        if strokeGrad then
+            strokeGrad.Rotation = (strokeGrad.Rotation + 1) % 360
+        end
     end)
 
     local MinimizeBtn = Instance.new("TextButton", Frame_1)
@@ -158,18 +193,59 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText)
         end
     end)
 
+    local function PlayWaveFlash()
+        local wave = Instance.new("Frame")
+        wave.Size = UDim2.new(0, 100, 1, 0)
+        wave.Position = UDim2.new(0, -100, 0, 0)
+        wave.BackgroundColor3 = selectedTheme
+        wave.BorderSizePixel = 0
+        wave.ZIndex = 16 -- Над фоном, но под текстом кнопок
+        
+        local grad = Instance.new("UIGradient", wave)
+        grad.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(0.5, 0),
+            NumberSequenceKeypoint.new(1, 1)
+        })
+        wave.Parent = Frame_1
+        
+        local tween = TweenService:Create(wave, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Position = UDim2.new(1, 0, 0, 0)})
+        tween:Play()
+        tween.Completed:Connect(function() wave:Destroy() end)
+    end
+
     local isMinimized, savedSize = false, UDim2.new(0, 338, 0, 301)
     local elementsToHide = {Frame_2, Frame_11, TabContainer, Label_12}
 
     MinimizeBtn.MouseButton1Click:Connect(function()
         if not isMinimized then
-            savedSize = Frame_1.Size; for _, el in ipairs(elementsToHide) do el.Visible = false end
-            TweenService:Create(Frame_1, TweenInfo.new(0.4), {Size = UDim2.new(0, savedSize.X.Offset, 0, 48)}):Play()
-            ResizeHandle.Visible = false; isMinimized = true
+            savedSize = Frame_1.Size
+            for _, el in ipairs(elementsToHide) do el.Visible = false end
+            
+            -- Трансформация в динамическую панель
+            TweenService:Create(Frame_1, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 260, 0, 42)}):Play()
+            
+            -- Анимация перемещения элементов
+            TweenService:Create(Label_15, TweenInfo.new(0.4), {Position = UDim2.new(0.5, -65, 0, 9)}):Play() -- Заголовок в центр
+            TweenService:Create(MinimizeBtn, TweenInfo.new(0.4), {Position = UDim2.new(0, 6, 0, 5)}):Play() -- Свернуть переходит налево
+            TweenService:Create(CloseBtn, TweenInfo.new(0.4), {Position = UDim2.new(1, -48, 0, 5)}):Play() -- Закрыть остается справа, но подравнивается
+            
+            ResizeHandle.Visible = false
+            isMinimized = true
+            
+            -- Волна перелива при сворачивании
+            PlayWaveFlash()
         else
-            TweenService:Create(Frame_1, TweenInfo.new(0.4), {Size = savedSize}):Play()
+            -- Возврат в обычное состояние
+            TweenService:Create(Frame_1, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = savedSize}):Play()
+            
+            TweenService:Create(Label_15, TweenInfo.new(0.4), {Position = UDim2.new(0, 70, 0, 11)}):Play()
+            TweenService:Create(MinimizeBtn, TweenInfo.new(0.4), {Position = UDim2.new(1, -97, 0, 10)}):Play()
+            TweenService:Create(CloseBtn, TweenInfo.new(0.4), {Position = UDim2.new(1, -50, 0, 10)}):Play()
+            
             for _, el in ipairs(elementsToHide) do el.Visible = true end
-            ResizeHandle.Visible = true; isMinimized = false
+            ResizeHandle.Visible = true
+            isMinimized = false
         end
     end)
 
