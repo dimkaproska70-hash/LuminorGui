@@ -78,7 +78,6 @@ local function AddContent(parent, text, iconName, color, isTab)
     listLayout.Padding = UDim.new(0, 8)
     listLayout.Parent = contentFrame
     
-    -- Выравнивание (для табов всегда по центру, для кнопок/тогглов по левому краю, если есть текст)
     if isTab then
         listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
     else
@@ -118,13 +117,21 @@ local function AddContent(parent, text, iconName, color, isTab)
     return contentFrame
 end
 
--- Добавили параметр bgName для фона (например, "Pan1.mp4" или "Pan2.png")
 function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bgName)
     local Window = { Tabs = {}, TabButtons = {}, TabLines = {} }
     
-    local selectedTheme = Themes[themeName and string.lower(themeName)] or Themes["classic"]
+    local themeKey = themeName and string.lower(themeName) or "classic"
+    local selectedTheme = Themes[themeKey] or Themes["classic"]
     local darkTheme = Color3.new(selectedTheme.R * 0.2, selectedTheme.G * 0.2, selectedTheme.B * 0.2)
     
+    -- Проверка на классическую тему для эффекта волны
+    local isClassicTheme = (themeKey == "classic" or themeKey == "классический")
+    
+    -- Проверка на наличие фона для эффекта прозрачности (стекла)
+    local hasBackground = (bgName and bgName ~= "")
+    local panelTransparency = hasBackground and 0.3 or 0
+    local tabTransparency = hasBackground and 0.3 or 0
+
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = uiName or "LuminorLib_UI"
     ScreenGui.ResetOnSpawn = false
@@ -158,7 +165,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
     local Frame_1 = Instance.new("Frame")
     Frame_1.Size = UDim2.new(0, 338, 0, 301)
     Frame_1.Position = UDim2.new(0.5, -169, 0.5, -150)
-    Frame_1.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Слегка осветлили базовый цвет
+    Frame_1.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
     Frame_1.ClipsDescendants = true
     Frame_1.Visible = false
     Frame_1.Parent = ScreenGui
@@ -166,7 +173,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
     Instance.new("UICorner", Frame_1).CornerRadius = UDim.new(0, 14)
     
     -- === СИСТЕМА ФОНА ===
-    if bgName and bgName ~= "" then
+    if hasBackground then
         local isVideo = string.match(string.lower(bgName), "%.mp4$") or string.match(string.lower(bgName), "%.webm$")
         local BackgroundContainer = Instance.new(isVideo and "VideoFrame" or "ImageLabel")
         BackgroundContainer.Size = UDim2.new(1, 0, 1, 0)
@@ -216,7 +223,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
     local Frame_2 = Instance.new("Frame")
     Frame_2.Position = UDim2.new(0, 127, 0, 53); Frame_2.Size = UDim2.new(1, -140, 1, -64)
     Frame_2.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    Frame_2.BackgroundTransparency = 0.3 -- Прозрачность для эффекта стекла
+    Frame_2.BackgroundTransparency = panelTransparency -- Динамическая прозрачность
     Frame_2.ZIndex = 2; Frame_2.Parent = Frame_1
     Instance.new("UICorner", Frame_2).CornerRadius = UDim.new(0, 16)
     local stroke2 = Instance.new("UIStroke", Frame_2); stroke2.Color = Color3.fromRGB(51, 51, 51); stroke2.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -224,7 +231,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
     local Frame_11 = Instance.new("Frame")
     Frame_11.Position = UDim2.new(0, 6, 1, -46); Frame_11.Size = UDim2.new(0, 118, 0, 37)
     Frame_11.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    Frame_11.BackgroundTransparency = 0.3 -- Прозрачность для эффекта стекла
+    Frame_11.BackgroundTransparency = panelTransparency -- Динамическая прозрачность
     Frame_11.ZIndex = 11; Frame_11.Parent = Frame_1
     Instance.new("UICorner", Frame_11).CornerRadius = UDim.new(0, 11)
     local stroke11 = Instance.new("UIStroke", Frame_11); stroke11.Color = Color3.fromRGB(51, 51, 51); stroke11.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -370,19 +377,17 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
 
     Window.MainFrame = Frame_2
 
-    -- === ОБНОВЛЕННЫЕ ВКЛАДКИ (ПОДДЕРЖКА ИКОНОК) ===
     function Window:CreateTab(text, iconName)
         local Tab = {}
         local isFirstTab = (#Window.Tabs == 0)
         
         local TabBtn = Instance.new("TextButton")
         TabBtn.Size = UDim2.new(0, 110, 0, 32); TabBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-        TabBtn.BackgroundTransparency = 0.3 -- Прозрачность
+        TabBtn.BackgroundTransparency = tabTransparency -- Динамическая прозрачность
         TabBtn.Text = ""; TabBtn.AutoButtonColor = false; TabBtn.ClipsDescendants = true; TabBtn.Parent = TabContainer
         Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 6)
         Instance.new("UIStroke", TabBtn).Color = Color3.fromRGB(51, 51, 51)
         
-        -- Используем AddContent с параметром isTab = true для центрирования
         AddContent(TabBtn, text, iconName, Color3.fromRGB(237, 232, 248), true)
 
         local TabLine = Instance.new("Frame")
@@ -424,7 +429,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
             
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(1, -12, 0, 32); btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-            btn.BackgroundTransparency = 0.5
+            btn.BackgroundTransparency = hasBackground and 0.5 or 0 -- Динамическая прозрачность для Toggle
             btn.Text = ""; btn.AutoButtonColor = false; btn.Parent = Scroll
             Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
             Instance.new("UIStroke", btn).Color = Color3.fromRGB(51, 51, 51)
@@ -458,7 +463,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
             
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(1, -12, 0, 32); btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-            btn.BackgroundTransparency = 0.5
+            btn.BackgroundTransparency = hasBackground and 0.5 or 0 -- Динамическая прозрачность для Button
             btn.Text = ""; btn.AutoButtonColor = false; btn.ClipsDescendants = true; btn.Parent = Scroll
             
             Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
@@ -468,7 +473,9 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
 
             btn.MouseButton1Down:Connect(function()
                 local wave = Instance.new("Frame")
-                wave.BackgroundColor3 = Color3.fromRGB(255, 255, 255); wave.BackgroundTransparency = 0.8; wave.BorderSizePixel = 0
+                -- Условие: если тема классическая, волна белая. В ином случае берет цвет темы.
+                wave.BackgroundColor3 = isClassicTheme and Color3.fromRGB(255, 255, 255) or selectedTheme
+                wave.BackgroundTransparency = 0.8; wave.BorderSizePixel = 0
                 wave.Position = UDim2.new(0.5, 0, 0.5, 0); wave.AnchorPoint = Vector2.new(0.5, 0.5)
                 wave.Size = UDim2.new(0, 0, 0, 0); wave.ZIndex = btn.ZIndex + 1
                 Instance.new("UICorner", wave).CornerRadius = UDim.new(1, 0); wave.Parent = btn
