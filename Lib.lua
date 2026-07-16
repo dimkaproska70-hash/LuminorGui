@@ -42,6 +42,9 @@ end
 -- === СИСТЕМА ЗАГРУЗКИ ИКОНОК С GITHUB ===
 local function GetIconAsset(iconName)
     if not iconName or iconName == "" then return nil end
+    -- Замена .ico на .png
+    iconName = iconName:gsub("%.ico$", ".png")
+    
     if not (isfile and writefile and makefolder and getcustomasset) then 
         warn("LuminorLib: Ваш исполнитель не поддерживает кастомные ассеты.")
         return "" 
@@ -330,9 +333,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName)
             end
         end)
 
-        -- === ОБНОВЛЕННЫЙ ТОГГЛ ===
         function Tab:CreateToggle(text, neonColor, defaultState, iconName, callback)
-            -- Обратная совместимость: если вместо иконки передали функцию коллбэка
             if type(iconName) == "function" then
                 callback = iconName
                 iconName = nil
@@ -344,12 +345,11 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName)
             
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(1, -12, 0, 32); btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-            btn.Text = "" -- Убираем базовый текст, используем контейнер
+            btn.Text = ""
             btn.AutoButtonColor = false; btn.Parent = Scroll
             Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
             local stroke = Instance.new("UIStroke", btn); stroke.Color = Color3.fromRGB(51, 51, 51); stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-            -- Контейнер для текста и иконки
             local contentFrame = Instance.new("Frame")
             contentFrame.Size = UDim2.new(1, 0, 1, 0)
             contentFrame.BackgroundTransparency = 1
@@ -379,7 +379,6 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName)
                 iconImg.ImageColor3 = currentTextColor
                 iconImg.Parent = contentFrame
                 
-                -- Асинхронно скачиваем и подгружаем иконку
                 task.spawn(function()
                     local asset = GetIconAsset(iconName)
                     if asset and asset ~= "" then
@@ -388,7 +387,6 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName)
                 end)
             end
 
-            -- Логика выравнивания (по центру, если нет текста)
             if not text or text == "" then
                 listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
                 textLabel.Visible = false
