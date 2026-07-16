@@ -497,3 +497,4 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
 end
 
 return LuminorLib
+
