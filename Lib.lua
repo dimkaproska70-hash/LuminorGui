@@ -7,7 +7,8 @@ local CoreGui = game:GetService("CoreGui")
 local safeParent = (gethui and gethui()) or (cloneref and cloneref(CoreGui)) or CoreGui
 
 function LuminorLib:CreateWindow(titleText, uiName, watermarkText)
-    local Window = { Tabs = {}, TabButtons = {} }
+    -- Добавлен массив TabLines для отслеживания полосок
+    local Window = { Tabs = {}, TabButtons = {}, TabLines = {} }
     
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = uiName or "LuminorLib_UI"
@@ -17,11 +18,36 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText)
     pcall(function() if syn and syn.protect_gui then syn.protect_gui(ScreenGui) end end)
     ScreenGui.Parent = safeParent
 
+    -- === ВСТУПЛЕНИЕ (INTRO) ===
+    local IntroLabel = Instance.new("TextLabel")
+    IntroLabel.Size = UDim2.new(1, 0, 1, 0)
+    IntroLabel.BackgroundTransparency = 1
+    IntroLabel.Text = "LN V1.0"
+    IntroLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    IntroLabel.TextTransparency = 1
+    IntroLabel.TextSize = 45
+    IntroLabel.Font = Enum.Font.GothamBold
+    IntroLabel.ZIndex = 100
+    IntroLabel.Parent = ScreenGui
+
+    local IntroGlow = Instance.new("TextLabel")
+    IntroGlow.Size = UDim2.new(1, 0, 1, 0)
+    IntroGlow.BackgroundTransparency = 1
+    IntroGlow.Text = "LN V1.0"
+    IntroGlow.TextColor3 = Color3.fromRGB(192, 132, 252)
+    IntroGlow.TextTransparency = 1
+    IntroGlow.TextSize = 47
+    IntroGlow.Font = Enum.Font.GothamBold
+    IntroGlow.ZIndex = 99
+    IntroGlow.Parent = IntroLabel
+    -- ==========================
+
     local Frame_1 = Instance.new("Frame")
     Frame_1.Size = UDim2.new(0, 338, 0, 301)
     Frame_1.Position = UDim2.new(0.5, -169, 0.5, -150)
     Frame_1.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     Frame_1.ClipsDescendants = true
+    Frame_1.Visible = false -- Скрыто до завершения интро
     Frame_1.Parent = ScreenGui
 
     Instance.new("UICorner", Frame_1).CornerRadius = UDim.new(0, 14)
@@ -82,6 +108,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText)
     ResizeHandle.BackgroundTransparency = 1; ResizeHandle.Text = "◢"; ResizeHandle.TextColor3 = Color3.fromRGB(255, 255, 255); ResizeHandle.TextTransparency = 0.6
     ResizeHandle.TextSize = 18; ResizeHandle.ZIndex = 20
 
+    -- Логика перетаскивания и изменения размера...
     local dragging, dragInput, dragStart, startPos
     Frame_1.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -130,10 +157,42 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText)
         Frame_1.Visible = false; task.wait(0.5); ScreenGui:Destroy()
     end)
 
+    -- === ЛОГИКА ЗАПУСКА ИНТРО ===
+    task.spawn(function()
+        -- Плавное появление текста
+        TweenService:Create(IntroLabel, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+        TweenService:Create(IntroGlow, TweenInfo.new(0.5), {TextTransparency = 0.5}):Play()
+        
+        task.wait(1.5) -- Ждем 1.5 секунды
+        
+        -- Плавное исчезновение текста
+        TweenService:Create(IntroLabel, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+        TweenService:Create(IntroGlow, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+        
+        task.wait(0.5)
+        IntroLabel:Destroy()
+        
+        -- Показываем главное меню с анимацией увеличения (Pop-up)
+        Frame_1.Visible = true
+        local finalSize = Frame_1.Size
+        local finalPos = Frame_1.Position
+        
+        -- Уменьшаем для эффекта появления
+        Frame_1.Size = UDim2.new(0, 0, 0, 0)
+        Frame_1.Position = UDim2.new(0.5, 0, 0.5, 0)
+        
+        TweenService:Create(Frame_1, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = finalSize,
+            Position = finalPos
+        }):Play()
+    end)
+    -- ============================
+
     Window.MainFrame = Frame_2
 
     function Window:CreateTab(iconText)
         local Tab = {}
+        local isFirstTab = (#Window.Tabs == 0)
         
         local TabBtn = Instance.new("TextButton")
         TabBtn.Size = UDim2.new(0, 110, 0, 32); TabBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
@@ -142,10 +201,23 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText)
         Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 6)
         Instance.new("UIStroke", TabBtn).Color = Color3.fromRGB(51, 51, 51)
 
+        -- === БЕЛАЯ НЕОНОВАЯ ПОЛОСКА ДЛЯ ТАБА ===
+        local TabLine = Instance.new("Frame")
+        TabLine.Size = UDim2.new(1, -20, 0, 2); TabLine.Position = UDim2.new(0.5, 0, 1, -2)
+        TabLine.AnchorPoint = Vector2.new(0.5, 1); TabLine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        TabLine.BorderSizePixel = 0; TabLine.Visible = isFirstTab; TabLine.Parent = TabBtn
+
+        local neonGlowTab = Instance.new("Frame")
+        neonGlowTab.Size = UDim2.new(1, 0, 0, 8); neonGlowTab.Position = UDim2.new(0.5, 0, 1, 3)
+        neonGlowTab.AnchorPoint = Vector2.new(0.5, 1); neonGlowTab.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        neonGlowTab.BackgroundTransparency = 0.7; neonGlowTab.BorderSizePixel = 0; neonGlowTab.Parent = TabLine
+        Instance.new("UICorner", neonGlowTab).CornerRadius = UDim.new(1, 0)
+        -- =======================================
+
         local Scroll = Instance.new("ScrollingFrame")
         Scroll.Size = UDim2.new(1, 0, 1, 0); Scroll.BackgroundTransparency = 1
         Scroll.BorderSizePixel = 0; Scroll.ScrollBarThickness = 2; Scroll.Parent = Window.MainFrame
-        Scroll.Visible = (#Window.Tabs == 0)
+        Scroll.Visible = isFirstTab
 
         local layout = Instance.new("UIListLayout", Scroll)
         layout.Padding = UDim.new(0, 6); layout.HorizontalAlignment = Enum.HorizontalAlignment.Center; layout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -153,9 +225,13 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText)
 
         table.insert(Window.Tabs, Scroll)
         table.insert(Window.TabButtons, TabBtn)
+        table.insert(Window.TabLines, TabLine)
 
         TabBtn.MouseButton1Click:Connect(function()
-            for _, s in ipairs(Window.Tabs) do s.Visible = (s == Scroll) end
+            for i, s in ipairs(Window.Tabs) do 
+                s.Visible = (s == Scroll) 
+                Window.TabLines[i].Visible = (s == Scroll) -- Включаем полоску только у активного таба
+            end
         end)
 
         function Tab:CreateToggle(text, neonColor, defaultState, callback)
@@ -186,6 +262,55 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText)
                 if callback then callback(state) end
             end)
         end
+
+        -- === НОВАЯ КНОПКА С АНИМАЦИЕЙ ВОЛНЫ (БЕЗ ПОЛОСКИ) ===
+        function Tab:CreateButton(text, callback)
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -12, 0, 32)
+            btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            btn.Text = text
+            btn.TextColor3 = Color3.fromRGB(237, 232, 248)
+            btn.TextSize = 14
+            btn.Font = Enum.Font.SourceSansBold
+            btn.AutoButtonColor = false
+            btn.ClipsDescendants = true -- Обязательно для обрезки волны внутри кнопки
+            btn.Parent = Scroll
+            
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+            local stroke = Instance.new("UIStroke", btn)
+            stroke.Color = Color3.fromRGB(51, 51, 51)
+            stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+            -- Анимация волны при нажатии
+            btn.MouseButton1Down:Connect(function()
+                local wave = Instance.new("Frame")
+                wave.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+                wave.BackgroundTransparency = 0.8
+                wave.BorderSizePixel = 0
+                wave.Position = UDim2.new(0.5, 0, 0.5, 0)
+                wave.AnchorPoint = Vector2.new(0.5, 0.5)
+                wave.Size = UDim2.new(0, 0, 0, 0)
+                wave.ZIndex = btn.ZIndex + 1
+                Instance.new("UICorner", wave).CornerRadius = UDim.new(1, 0)
+                wave.Parent = btn
+
+                local tween = TweenService:Create(wave, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    Size = UDim2.new(0, 150, 0, 150),
+                    BackgroundTransparency = 1
+                })
+                tween:Play()
+                
+                tween.Completed:Connect(function()
+                    wave:Destroy()
+                end)
+            end)
+
+            -- Вызов функции при клике
+            btn.MouseButton1Click:Connect(function()
+                if callback then callback() end
+            end)
+        end
+        -- ====================================================
 
         return Tab
     end
