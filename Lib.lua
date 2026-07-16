@@ -18,7 +18,6 @@ local Palette = {
     ["cyan"]   = Color3.fromRGB(0, 255, 255)
 }
 
--- Таблица тем UI
 local Themes = {
     ["classic"]      = Color3.fromRGB(192, 132, 252),
     ["классический"] = Color3.fromRGB(192, 132, 252),
@@ -33,19 +32,45 @@ local Themes = {
 local function GetColor(input)
     if type(input) == "string" then
         local lower = input:lower()
-        if Palette[lower] then
-            return Palette[lower]
-        end
+        if Palette[lower] then return Palette[lower] end
     elseif typeof(input) == "Color3" then
         return input
     end
     return Color3.fromRGB(255, 255, 255)
 end
 
+-- === СИСТЕМА ЗАГРУЗКИ ИКОНОК С GITHUB ===
+local function GetIconAsset(iconName)
+    if not iconName or iconName == "" then return nil end
+    if not (isfile and writefile and makefolder and getcustomasset) then 
+        warn("LuminorLib: Ваш исполнитель не поддерживает кастомные ассеты.")
+        return "" 
+    end
+    
+    local folderName = "LuminorIcons"
+    local path = folderName .. "/" .. iconName
+    
+    if not isfolder(folderName) then
+        makefolder(folderName)
+    end
+    
+    if not isfile(path) then
+        local url = "https://raw.githubusercontent.com/dimkaproska70-hash/LuminorGui/main/Icons/" .. iconName
+        local s, res = pcall(function() return game:HttpGet(url) end)
+        if s and res and not string.find(res, "404: Not Found") then
+            writefile(path, res)
+        else
+            warn("LuminorLib: Не удалось загрузить иконку " .. iconName)
+            return ""
+        end
+    end
+    
+    return getcustomasset(path)
+end
+
 function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName)
     local Window = { Tabs = {}, TabButtons = {}, TabLines = {} }
     
-    -- Определяем тему (по умолчанию Classic)
     local selectedTheme = Themes[themeName and string.lower(themeName)] or Themes["classic"]
     local darkTheme = Color3.new(selectedTheme.R * 0.2, selectedTheme.G * 0.2, selectedTheme.B * 0.2)
     
@@ -89,11 +114,10 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName)
 
     Instance.new("UICorner", Frame_1).CornerRadius = UDim.new(0, 14)
     
-    -- Динамическая переливающаяся обводка (Wave) для главного окна
     local stroke1 = Instance.new("UIStroke", Frame_1)
     stroke1.Thickness = 2
     stroke1.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    stroke1.Color = Color3.fromRGB(255, 255, 255) -- Белый цвет, чтобы градиент отображался корректно
+    stroke1.Color = Color3.fromRGB(255, 255, 255) 
     
     local strokeGrad = Instance.new("UIGradient", stroke1)
     strokeGrad.Color = ColorSequence.new({
@@ -139,11 +163,8 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName)
 
     RunService.Heartbeat:Connect(function()
         local f = (math.sin(tick() * 1.5) + 1) / 2
-        -- Текст пульсирует между белым и цветом темы
         Label_12.TextColor3 = selectedTheme:Lerp(Color3.fromRGB(255, 255, 255), f)
         Label_15.TextColor3 = selectedTheme:Lerp(Color3.fromRGB(255, 255, 255), 1 - f)
-        
-        -- Вращение переливающейся обводки
         if strokeGrad then
             strokeGrad.Rotation = (strokeGrad.Rotation + 1) % 360
         end
@@ -199,7 +220,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName)
         wave.Position = UDim2.new(0, -100, 0, 0)
         wave.BackgroundColor3 = selectedTheme
         wave.BorderSizePixel = 0
-        wave.ZIndex = 16 -- Над фоном, но под текстом кнопок
+        wave.ZIndex = 16 
         
         local grad = Instance.new("UIGradient", wave)
         grad.Transparency = NumberSequence.new({
@@ -221,28 +242,18 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName)
         if not isMinimized then
             savedSize = Frame_1.Size
             for _, el in ipairs(elementsToHide) do el.Visible = false end
-            
-            -- Трансформация в динамическую панель
             TweenService:Create(Frame_1, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 260, 0, 42)}):Play()
-            
-            -- Анимация перемещения элементов
-            TweenService:Create(Label_15, TweenInfo.new(0.4), {Position = UDim2.new(0.5, -65, 0, 9)}):Play() -- Заголовок в центр
-            TweenService:Create(MinimizeBtn, TweenInfo.new(0.4), {Position = UDim2.new(0, 6, 0, 5)}):Play() -- Свернуть переходит налево
-            TweenService:Create(CloseBtn, TweenInfo.new(0.4), {Position = UDim2.new(1, -48, 0, 5)}):Play() -- Закрыть остается справа, но подравнивается
-            
+            TweenService:Create(Label_15, TweenInfo.new(0.4), {Position = UDim2.new(0.5, -65, 0, 9)}):Play()
+            TweenService:Create(MinimizeBtn, TweenInfo.new(0.4), {Position = UDim2.new(0, 6, 0, 5)}):Play()
+            TweenService:Create(CloseBtn, TweenInfo.new(0.4), {Position = UDim2.new(1, -48, 0, 5)}):Play() 
             ResizeHandle.Visible = false
             isMinimized = true
-            
-            -- Волна перелива при сворачивании
             PlayWaveFlash()
         else
-            -- Возврат в обычное состояние
             TweenService:Create(Frame_1, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = savedSize}):Play()
-            
             TweenService:Create(Label_15, TweenInfo.new(0.4), {Position = UDim2.new(0, 70, 0, 11)}):Play()
             TweenService:Create(MinimizeBtn, TweenInfo.new(0.4), {Position = UDim2.new(1, -97, 0, 10)}):Play()
             TweenService:Create(CloseBtn, TweenInfo.new(0.4), {Position = UDim2.new(1, -50, 0, 10)}):Play()
-            
             for _, el in ipairs(elementsToHide) do el.Visible = true end
             ResizeHandle.Visible = true
             isMinimized = false
@@ -256,12 +267,9 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName)
     task.spawn(function()
         TweenService:Create(IntroLabel, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
         TweenService:Create(IntroGlow, TweenInfo.new(0.5), {TextTransparency = 0.5}):Play()
-        
         task.wait(1.5)
-        
         TweenService:Create(IntroLabel, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
         TweenService:Create(IntroGlow, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
-        
         task.wait(0.5)
         IntroLabel:Destroy()
         
@@ -322,16 +330,74 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName)
             end
         end)
 
-        function Tab:CreateToggle(text, neonColor, defaultState, callback)
+        -- === ОБНОВЛЕННЫЙ ТОГГЛ ===
+        function Tab:CreateToggle(text, neonColor, defaultState, iconName, callback)
+            -- Обратная совместимость: если вместо иконки передали функцию коллбэка
+            if type(iconName) == "function" then
+                callback = iconName
+                iconName = nil
+            end
+
             local state = defaultState or false
             local actualColor = GetColor(neonColor)
+            local currentTextColor = state and actualColor or Color3.fromRGB(112, 112, 112)
             
             local btn = Instance.new("TextButton")
             btn.Size = UDim2.new(1, -12, 0, 32); btn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-            btn.Text = text; btn.TextColor3 = state and actualColor or Color3.fromRGB(112, 112, 112)
-            btn.TextSize = 14; btn.Font = Enum.Font.SourceSansBold; btn.AutoButtonColor = false; btn.Parent = Scroll
+            btn.Text = "" -- Убираем базовый текст, используем контейнер
+            btn.AutoButtonColor = false; btn.Parent = Scroll
             Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
             local stroke = Instance.new("UIStroke", btn); stroke.Color = Color3.fromRGB(51, 51, 51); stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+            -- Контейнер для текста и иконки
+            local contentFrame = Instance.new("Frame")
+            contentFrame.Size = UDim2.new(1, 0, 1, 0)
+            contentFrame.BackgroundTransparency = 1
+            contentFrame.Parent = btn
+
+            local listLayout = Instance.new("UIListLayout")
+            listLayout.FillDirection = Enum.FillDirection.Horizontal
+            listLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+            listLayout.Padding = UDim.new(0, 8)
+            listLayout.Parent = contentFrame
+
+            local textLabel = Instance.new("TextLabel")
+            textLabel.BackgroundTransparency = 1
+            textLabel.Text = text or ""
+            textLabel.TextColor3 = currentTextColor
+            textLabel.TextSize = 14
+            textLabel.Font = Enum.Font.SourceSansBold
+            textLabel.AutomaticSize = Enum.AutomaticSize.X
+            textLabel.Size = UDim2.new(0, 0, 1, 0)
+            textLabel.Parent = contentFrame
+
+            local iconImg
+            if iconName and iconName ~= "" then
+                iconImg = Instance.new("ImageLabel")
+                iconImg.BackgroundTransparency = 1
+                iconImg.Size = UDim2.new(0, 16, 0, 16)
+                iconImg.ImageColor3 = currentTextColor
+                iconImg.Parent = contentFrame
+                
+                -- Асинхронно скачиваем и подгружаем иконку
+                task.spawn(function()
+                    local asset = GetIconAsset(iconName)
+                    if asset and asset ~= "" then
+                        iconImg.Image = asset
+                    end
+                end)
+            end
+
+            -- Логика выравнивания (по центру, если нет текста)
+            if not text or text == "" then
+                listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+                textLabel.Visible = false
+            else
+                listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+                local contentPad = Instance.new("UIPadding")
+                contentPad.PaddingLeft = UDim.new(0, 12)
+                contentPad.Parent = contentFrame
+            end
 
             local neonLine = Instance.new("Frame")
             neonLine.Size = UDim2.new(1, -20, 0, 2); neonLine.Position = UDim2.new(0.5, 0, 1, -2)
@@ -347,7 +413,13 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName)
             btn.MouseButton1Click:Connect(function()
                 state = not state
                 neonLine.Visible = state
-                btn.TextColor3 = state and actualColor or Color3.fromRGB(112, 112, 112)
+                
+                local clr = state and actualColor or Color3.fromRGB(112, 112, 112)
+                textLabel.TextColor3 = clr
+                if iconImg then
+                    iconImg.ImageColor3 = clr
+                end
+                
                 if callback then callback(state) end
             end)
         end
