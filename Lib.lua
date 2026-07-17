@@ -531,6 +531,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         Scroll.Size = UDim2.new(1, 0, 1, 0); Scroll.BackgroundTransparency = 1
         Scroll.BorderSizePixel = 0; Scroll.ScrollBarThickness = 2; Scroll.Parent = Window.MainFrame
         Scroll.Visible = isFirstTab; Scroll.ZIndex = 3
+        Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
         local layout = Instance.new("UIListLayout", Scroll)
         layout.Padding = UDim.new(0, 6); layout.HorizontalAlignment = Enum.HorizontalAlignment.Center; layout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -612,6 +613,194 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
             end)
 
             btn.MouseButton1Click:Connect(function() if callback then callback() end end)
+        end
+
+        -- === КОМПОНЕНТ: SLIDER ===
+        function Tab:CreateSlider(text, min, max, default, neonColor, iconName, callback)
+            -- Защита от пропущенной иконки
+            if type(iconName) == "function" then callback = iconName; iconName = nil end
+            
+            local actualColor = GetColor(neonColor)
+            local currentValue = default or min
+            currentValue = math.clamp(currentValue, min, max)
+
+            local SliderContainer = Instance.new("Frame")
+            SliderContainer.Size = UDim2.new(1, -12, 0, 52)
+            SliderContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            SliderContainer.BackgroundTransparency = hasBackground and 0.5 or 0
+            SliderContainer.Parent = Scroll
+            Instance.new("UICorner", SliderContainer).CornerRadius = UDim.new(0, 8)
+            Instance.new("UIStroke", SliderContainer).Color = Color3.fromRGB(51, 51, 51)
+
+            -- Контент (Текст и Иконка)
+            local content = AddContent(SliderContainer, text, iconName, Color3.fromRGB(237, 232, 248), false)
+            content.Size = UDim2.new(1, -50, 0, 30) -- Оставляем место для цифры справа
+
+            -- Отображение значения
+            local ValueLabel = Instance.new("TextLabel")
+            ValueLabel.Size = UDim2.new(0, 40, 0, 30)
+            ValueLabel.Position = UDim2.new(1, -45, 0, 0)
+            ValueLabel.BackgroundTransparency = 1
+            ValueLabel.Text = tostring(currentValue)
+            ValueLabel.TextColor3 = actualColor
+            ValueLabel.TextSize = 14
+            ValueLabel.Font = Enum.Font.SourceSansBold
+            ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+            ValueLabel.Parent = SliderContainer
+
+            -- Полоска слайдера
+            local SliderBg = Instance.new("Frame")
+            SliderBg.Size = UDim2.new(1, -24, 0, 4)
+            SliderBg.Position = UDim2.new(0, 12, 0, 36)
+            SliderBg.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+            SliderBg.Parent = SliderContainer
+            Instance.new("UICorner", SliderBg).CornerRadius = UDim.new(1, 0)
+
+            local SliderFill = Instance.new("Frame")
+            local startPct = (currentValue - min) / (max - min)
+            SliderFill.Size = UDim2.new(startPct, 0, 1, 0)
+            SliderFill.BackgroundColor3 = actualColor
+            SliderFill.Parent = SliderBg
+            Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(1, 0)
+
+            local Knob = Instance.new("Frame")
+            Knob.Size = UDim2.new(0, 12, 0, 12)
+            Knob.Position = UDim2.new(1, -6, 0.5, -6)
+            Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            Knob.Parent = SliderFill
+            Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
+
+            -- Логика перетаскивания
+            local dragging = false
+            local function updateSlider(input)
+                local pos = math.clamp((input.Position.X - SliderBg.AbsolutePosition.X) / SliderBg.AbsoluteSize.X, 0, 1)
+                currentValue = math.floor(min + ((max - min) * pos))
+                ValueLabel.Text = tostring(currentValue)
+                TweenService:Create(SliderFill, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(pos, 0, 1, 0)}):Play()
+                if callback then callback(currentValue) end
+            end
+
+            SliderBg.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true; updateSlider(input)
+                end
+            end)
+            SliderContainer.InputBegan:Connect(function(input)
+                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true; updateSlider(input)
+                end
+            end)
+
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = false
+                end
+            end)
+            UserInputService.InputChanged:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    updateSlider(input)
+                end
+            end)
+        end
+
+        -- === КОМПОНЕНТ: DROPDOWN ===
+        function Tab:CreateDropdown(text, options, default, neonColor, iconName, callback)
+            if type(iconName) == "function" then callback = iconName; iconName = nil end
+            
+            local actualColor = GetColor(neonColor)
+            local isDropped = false
+            local selected = default or (options and options[1]) or ""
+
+            local DropdownContainer = Instance.new("Frame")
+            DropdownContainer.Size = UDim2.new(1, -12, 0, 32)
+            DropdownContainer.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            DropdownContainer.BackgroundTransparency = hasBackground and 0.5 or 0
+            DropdownContainer.ClipsDescendants = true
+            DropdownContainer.Parent = Scroll
+            Instance.new("UICorner", DropdownContainer).CornerRadius = UDim.new(0, 8)
+            Instance.new("UIStroke", DropdownContainer).Color = Color3.fromRGB(51, 51, 51)
+
+            local MainBtn = Instance.new("TextButton")
+            MainBtn.Size = UDim2.new(1, 0, 0, 32)
+            MainBtn.BackgroundTransparency = 1
+            MainBtn.Text = ""
+            MainBtn.Parent = DropdownContainer
+
+            -- Текст и Иконка
+            local content = AddContent(MainBtn, text, iconName, Color3.fromRGB(237, 232, 248), false)
+            content.Size = UDim2.new(1, -120, 1, 0) 
+
+            -- Текст выбранной опции
+            local SelectedLabel = Instance.new("TextLabel")
+            SelectedLabel.Size = UDim2.new(0, 90, 1, 0)
+            SelectedLabel.Position = UDim2.new(1, -115, 0, 0)
+            SelectedLabel.BackgroundTransparency = 1
+            SelectedLabel.Text = tostring(selected)
+            SelectedLabel.TextColor3 = actualColor
+            SelectedLabel.TextSize = 13
+            SelectedLabel.Font = Enum.Font.SourceSansBold
+            SelectedLabel.TextXAlignment = Enum.TextXAlignment.Right
+            SelectedLabel.Parent = MainBtn
+
+            -- Стрелочка
+            local Arrow = Instance.new("TextLabel")
+            Arrow.Size = UDim2.new(0, 20, 1, 0)
+            Arrow.Position = UDim2.new(1, -25, 0, 0)
+            Arrow.BackgroundTransparency = 1
+            Arrow.Text = "▼"
+            Arrow.TextColor3 = Color3.fromRGB(150, 150, 150)
+            Arrow.TextSize = 12
+            Arrow.Parent = MainBtn
+
+            local OptionsContainer = Instance.new("Frame")
+            OptionsContainer.Size = UDim2.new(1, 0, 0, 0)
+            OptionsContainer.Position = UDim2.new(0, 0, 0, 32)
+            OptionsContainer.BackgroundTransparency = 1
+            OptionsContainer.Parent = DropdownContainer
+
+            local OptionsLayout = Instance.new("UIListLayout")
+            OptionsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+            OptionsLayout.Parent = OptionsContainer
+
+            local function toggleDropdown()
+                isDropped = not isDropped
+                local targetHeight = isDropped and (32 + (#options * 28)) or 32
+                
+                TweenService:Create(DropdownContainer, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(1, -12, 0, targetHeight)}):Play()
+                TweenService:Create(Arrow, TweenInfo.new(0.3), {Rotation = isDropped and 180 or 0}):Play()
+            end
+
+            MainBtn.MouseButton1Click:Connect(toggleDropdown)
+
+            -- Генерация кнопок с опциями
+            for _, option in ipairs(options) do
+                local OptBtn = Instance.new("TextButton")
+                OptBtn.Size = UDim2.new(1, 0, 0, 28)
+                OptBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+                OptBtn.BackgroundTransparency = hasBackground and 0.5 or 0
+                OptBtn.Text = "  " .. tostring(option)
+                OptBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+                OptBtn.TextSize = 13
+                OptBtn.Font = Enum.Font.SourceSans
+                OptBtn.TextXAlignment = Enum.TextXAlignment.Left
+                OptBtn.AutoButtonColor = false
+                OptBtn.Parent = OptionsContainer
+                
+                -- Эффекты при наведении
+                OptBtn.MouseEnter:Connect(function()
+                    TweenService:Create(OptBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(40, 40, 40), TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+                end)
+                OptBtn.MouseLeave:Connect(function()
+                    TweenService:Create(OptBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 20, 20), TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+                end)
+
+                OptBtn.MouseButton1Click:Connect(function()
+                    selected = option
+                    SelectedLabel.Text = tostring(selected)
+                    toggleDropdown()
+                    if callback then callback(selected) end
+                end)
+            end
         end
 
         return Tab
