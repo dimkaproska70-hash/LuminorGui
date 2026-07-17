@@ -40,7 +40,7 @@ local function GetColor(input)
     return Color3.fromRGB(255, 255, 255)
 end
 
--- === УНИВЕРСАЛЬНАЯ СИСТЕМА ЗАГРУЗКИ АССЕТОВ ===
+-- ===== ЗАГРУЗКА АССЕТОВ =====
 local function GetAsset(folderName, githubFolder, fileName)
     if not fileName or fileName == "" then return nil end
     if not (isfile and writefile and makefolder and getcustomasset) then 
@@ -66,7 +66,7 @@ local function GetAsset(folderName, githubFolder, fileName)
     return getcustomasset(path)
 end
 
--- === ПОИСК АССЕТА ПО БАЗОВОМУ ИМЕНИ ===
+-- Поиск ассета по базовому имени с перебором расширений
 local function ResolveAsset(folderName, githubFolder, baseName, extensions)
     for _, ext in ipairs(extensions) do
         local fileName = baseName .. ext
@@ -78,7 +78,7 @@ local function ResolveAsset(folderName, githubFolder, baseName, extensions)
     return nil, nil
 end
 
--- === УНИВЕРСАЛЬНЫЙ КОНСТРУКТОР КОНТЕНТА (Текст + Иконка) ===
+-- ===== КОНСТРУКТОР КОНТЕНТА (текст + иконка) =====
 local function AddContent(parent, text, iconName, color, isTab)
     local contentFrame = Instance.new("Frame")
     contentFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -135,7 +135,7 @@ local function AddContent(parent, text, iconName, color, isTab)
     return contentFrame
 end
 
--- === ГЛАВНАЯ ФУНКЦИЯ СОЗДАНИЯ ОКНА ===
+-- ===== ГЛАВНАЯ ФУНКЦИЯ =====
 function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bgName, options)
     local keySystemEnabled = true
     local defaultPlatoboostId = ""
@@ -161,7 +161,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
     
     local isClassicTheme = (themeKey == "classic" or themeKey == "классический")
     
-    -- === РАБОТА С ФОНОМ ===
+    -- ===== ФОН =====
     local isNoneBg = (bgName and string.lower(bgName) == "none")
     local hasBackground = (bgName and bgName ~= "" and not isNoneBg)
     local panelTransparency = hasBackground and 0.3 or 0
@@ -182,6 +182,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         end
     end
 
+    -- ===== SCREEN GUI =====
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = uiName or "LuminorLib_UI"
     ScreenGui.ResetOnSpawn = false
@@ -190,10 +191,222 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
     pcall(function() if syn and syn.protect_gui then syn.protect_gui(ScreenGui) end end)
     ScreenGui.Parent = safeParent
 
-    -- ... (весь код создания Frame_1, TabContainer, кнопок, анимаций и т.д.) остаётся без изменений ...
-    -- Я пропущу его для краткости, но он должен быть точно таким же, как в предыдущей версии.
+    -- ===== ИНТРО =====
+    local IntroLabel = Instance.new("TextLabel")
+    IntroLabel.Size = UDim2.new(1, 0, 1, 0)
+    IntroLabel.BackgroundTransparency = 1
+    IntroLabel.Text = "LN V1.0"
+    IntroLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    IntroLabel.TextTransparency = 1
+    IntroLabel.TextSize = 45
+    IntroLabel.Font = Enum.Font.GothamBold
+    IntroLabel.ZIndex = 100
+    IntroLabel.Parent = ScreenGui
 
-    -- === АНИМАЦИЯ И КЛЮЧ СИСТЕМА ===
+    local IntroGlow = Instance.new("TextLabel")
+    IntroGlow.Size = UDim2.new(1, 0, 1, 0)
+    IntroGlow.BackgroundTransparency = 1
+    IntroGlow.Text = "LN V1.0"
+    IntroGlow.TextColor3 = selectedTheme
+    IntroGlow.TextTransparency = 1
+    IntroGlow.TextSize = 47
+    IntroGlow.Font = Enum.Font.GothamBold
+    IntroGlow.ZIndex = 99
+    IntroGlow.Parent = IntroLabel
+
+    -- ===== ГЛАВНЫЙ ФРЕЙМ =====
+    local Frame_1 = Instance.new("Frame")
+    Frame_1.Size = UDim2.new(0, 338, 0, 301)
+    Frame_1.Position = UDim2.new(0.5, -169, 0.5, -150)
+    Frame_1.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    Frame_1.ClipsDescendants = true
+    Frame_1.Visible = false
+    Frame_1.Parent = ScreenGui
+
+    Instance.new("UICorner", Frame_1).CornerRadius = UDim.new(0, 14)
+    
+    -- Фон (если есть)
+    if hasBackground and resolvedBgAsset then
+        local isVideo = resolvedBgFileName and (string.match(string.lower(resolvedBgFileName), "%.mp4$") or string.match(string.lower(resolvedBgFileName), "%.webm$"))
+        local BackgroundContainer = Instance.new(isVideo and "VideoFrame" or "ImageLabel")
+        BackgroundContainer.Size = UDim2.new(1, 0, 1, 0)
+        BackgroundContainer.BackgroundTransparency = 1
+        BackgroundContainer.ZIndex = 1
+        BackgroundContainer.Parent = Frame_1
+        
+        if isVideo then
+            BackgroundContainer.Looped = true
+            BackgroundContainer.Playing = true
+            BackgroundContainer.Volume = 0
+            BackgroundContainer.Video = resolvedBgAsset
+        else
+            BackgroundContainer.ScaleType = Enum.ScaleType.Crop
+            BackgroundContainer.Image = resolvedBgAsset
+        end
+
+        Instance.new("UICorner", BackgroundContainer).CornerRadius = UDim.new(0, 14)
+    end
+
+    -- Gradient stroke
+    local stroke1 = Instance.new("UIStroke", Frame_1)
+    stroke1.Thickness = 2
+    stroke1.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke1.Color = Color3.fromRGB(255, 255, 255) 
+    
+    local strokeGrad = Instance.new("UIGradient", stroke1)
+    strokeGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, darkTheme),
+        ColorSequenceKeypoint.new(0.5, selectedTheme),
+        ColorSequenceKeypoint.new(1, darkTheme)
+    })
+    strokeGrad.Rotation = 0
+
+    local Shadow = Instance.new("ImageLabel")
+    Shadow.AnchorPoint = Vector2.new(0.5, 0.5); Shadow.BackgroundTransparency = 1; Shadow.Position = UDim2.new(0.5, 0, 0.5, 15)
+    Shadow.Size = UDim2.new(1, 60, 1, 60); Shadow.ZIndex = 0; Shadow.Image = "rbxassetid://5028857084"
+    Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0); Shadow.ImageTransparency = 0.6
+    Shadow.ScaleType = Enum.ScaleType.Slice; Shadow.SliceCenter = Rect.new(24, 24, 276, 276); Shadow.Parent = Frame_1
+
+    -- Внутренняя панель контента
+    local Frame_2 = Instance.new("Frame")
+    Frame_2.Position = UDim2.new(0, 127, 0, 53); Frame_2.Size = UDim2.new(1, -140, 1, -64)
+    Frame_2.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Frame_2.BackgroundTransparency = panelTransparency
+    Frame_2.ZIndex = 2; Frame_2.Parent = Frame_1
+    Instance.new("UICorner", Frame_2).CornerRadius = UDim.new(0, 16)
+    local stroke2 = Instance.new("UIStroke", Frame_2); stroke2.Color = Color3.fromRGB(51, 51, 51); stroke2.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    -- Водяной знак
+    local Frame_11 = Instance.new("Frame")
+    Frame_11.Position = UDim2.new(0, 6, 1, -46); Frame_11.Size = UDim2.new(0, 118, 0, 37)
+    Frame_11.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    Frame_11.BackgroundTransparency = panelTransparency
+    Frame_11.ZIndex = 11; Frame_11.Parent = Frame_1
+    Instance.new("UICorner", Frame_11).CornerRadius = UDim.new(0, 11)
+    local stroke11 = Instance.new("UIStroke", Frame_11); stroke11.Color = Color3.fromRGB(51, 51, 51); stroke11.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+    -- Контейнер вкладок
+    local TabContainer = Instance.new("Frame", Frame_1)
+    TabContainer.Size = UDim2.new(0, 110, 1, 0); TabContainer.Position = UDim2.new(0, 6, 0, 57); TabContainer.BackgroundTransparency = 1
+    TabContainer.ZIndex = 2
+
+    local TabListLayout = Instance.new("UIListLayout", TabContainer)
+    TabListLayout.Padding = UDim.new(0, 6); TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+    local Label_12 = Instance.new("TextLabel")
+    Label_12.Position = UDim2.new(0, 14, 1, -37); Label_12.Size = UDim2.new(0, 87, 0, 24); Label_12.BackgroundTransparency = 1
+    Label_12.Text = watermarkText or "By DADILK"; Label_12.TextColor3 = selectedTheme; Label_12.TextSize = 14
+    Label_12.Font = Enum.Font.Ubuntu; Label_12.TextXAlignment = Enum.TextXAlignment.Left; Label_12.ZIndex = 12; Label_12.Parent = Frame_1
+
+    local Label_15 = Instance.new("TextLabel")
+    Label_15.Position = UDim2.new(0, 70, 0, 11); Label_15.Size = UDim2.new(0, 130, 0, 24); Label_15.BackgroundTransparency = 1
+    Label_15.Text = titleText or "Luminor"; Label_15.TextColor3 = selectedTheme; Label_15.TextSize = 30
+    Label_15.Font = Enum.Font.Creepster; Label_15.TextXAlignment = Enum.TextXAlignment.Left; Label_15.ZIndex = 15; Label_15.Parent = Frame_1
+
+    RunService.Heartbeat:Connect(function()
+        local f = (math.sin(tick() * 1.5) + 1) / 2
+        Label_12.TextColor3 = selectedTheme:Lerp(Color3.fromRGB(255, 255, 255), f)
+        Label_15.TextColor3 = selectedTheme:Lerp(Color3.fromRGB(255, 255, 255), 1 - f)
+        if strokeGrad then
+            strokeGrad.Rotation = (strokeGrad.Rotation + 1) % 360
+        end
+    end)
+
+    -- Кнопки управления
+    local MinimizeBtn = Instance.new("TextButton", Frame_1)
+    MinimizeBtn.Position = UDim2.new(1, -97, 0, 10); MinimizeBtn.Size = UDim2.new(0, 42, 0, 31); MinimizeBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    MinimizeBtn.Text = "•"; MinimizeBtn.TextColor3 = Color3.fromRGB(245, 236, 0); MinimizeBtn.TextSize = 30; MinimizeBtn.ZIndex = 17
+    MinimizeBtn.BackgroundTransparency = 0.5
+    Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
+
+    local CloseBtn = Instance.new("TextButton", Frame_1)
+    CloseBtn.Position = UDim2.new(1, -50, 0, 10); CloseBtn.Size = UDim2.new(0, 42, 0, 31); CloseBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    CloseBtn.Text = "•"; CloseBtn.TextColor3 = Color3.fromRGB(140, 0, 9); CloseBtn.TextSize = 30; CloseBtn.ZIndex = 17
+    CloseBtn.BackgroundTransparency = 0.5
+    Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
+
+    local ResizeHandle = Instance.new("TextButton", Frame_1)
+    ResizeHandle.Size = UDim2.new(0, 25, 0, 25); ResizeHandle.Position = UDim2.new(1, 0, 1, 0); ResizeHandle.AnchorPoint = Vector2.new(1, 1)
+    ResizeHandle.BackgroundTransparency = 1; ResizeHandle.Text = "◢"; ResizeHandle.TextColor3 = Color3.fromRGB(255, 255, 255); ResizeHandle.TextTransparency = 0.6
+    ResizeHandle.TextSize = 18; ResizeHandle.ZIndex = 20
+
+    -- Drag
+    local dragging, dragInput, dragStart, startPos
+    Frame_1.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; dragStart = input.Position; startPos = Frame_1.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+        end
+    end)
+    Frame_1.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            Frame_1.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+
+    -- Resize
+    local resizing, resizeStart, startSize
+    ResizeHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            resizing = true; resizeStart = input.Position; startSize = Frame_1.Size
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then resizing = false end end)
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if resizing and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - resizeStart
+            Frame_1.Size = UDim2.new(0, math.max(338, startSize.X.Offset + delta.X), 0, math.max(100, startSize.Y.Offset + delta.Y))
+        end
+    end)
+
+    local function PlayWaveFlash()
+        local wave = Instance.new("Frame")
+        wave.Size = UDim2.new(0, 100, 1, 0); wave.Position = UDim2.new(0, -100, 0, 0)
+        wave.BackgroundColor3 = selectedTheme; wave.BorderSizePixel = 0; wave.ZIndex = 16 
+        local grad = Instance.new("UIGradient", wave)
+        grad.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(0.5, 0),
+            NumberSequenceKeypoint.new(1, 1)
+        })
+        wave.Parent = Frame_1
+        local tween = TweenService:Create(wave, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {Position = UDim2.new(1, 0, 0, 0)})
+        tween:Play()
+        tween.Completed:Connect(function() wave:Destroy() end)
+    end
+
+    local isMinimized, savedSize = false, UDim2.new(0, 338, 0, 301)
+    local elementsToHide = {Frame_2, Frame_11, TabContainer, Label_12}
+
+    MinimizeBtn.MouseButton1Click:Connect(function()
+        if not isMinimized then
+            savedSize = Frame_1.Size
+            for _, el in ipairs(elementsToHide) do el.Visible = false end
+            TweenService:Create(Frame_1, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 260, 0, 42)}):Play()
+            TweenService:Create(Label_15, TweenInfo.new(0.4), {Position = UDim2.new(0.5, -65, 0, 9)}):Play()
+            TweenService:Create(MinimizeBtn, TweenInfo.new(0.4), {Position = UDim2.new(0, 6, 0, 5)}):Play()
+            TweenService:Create(CloseBtn, TweenInfo.new(0.4), {Position = UDim2.new(1, -48, 0, 5)}):Play() 
+            ResizeHandle.Visible = false
+            isMinimized = true
+            PlayWaveFlash()
+        else
+            TweenService:Create(Frame_1, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = savedSize}):Play()
+            TweenService:Create(Label_15, TweenInfo.new(0.4), {Position = UDim2.new(0, 70, 0, 11)}):Play()
+            TweenService:Create(MinimizeBtn, TweenInfo.new(0.4), {Position = UDim2.new(1, -97, 0, 10)}):Play()
+            TweenService:Create(CloseBtn, TweenInfo.new(0.4), {Position = UDim2.new(1, -50, 0, 10)}):Play()
+            for _, el in ipairs(elementsToHide) do el.Visible = true end
+            ResizeHandle.Visible = true
+            isMinimized = false
+        end
+    end)
+
+    CloseBtn.MouseButton1Click:Connect(function()
+        Frame_1.Visible = false; task.wait(0.5); ScreenGui:Destroy()
+    end)
+
+    -- ===== АНИМАЦИЯ И КЛЮЧ-СИСТЕМА =====
     task.spawn(function()
         TweenService:Create(IntroLabel, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
         TweenService:Create(IntroGlow, TweenInfo.new(0.5), {TextTransparency = 0.5}):Play()
@@ -222,7 +435,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
             return
         end
         
-        -- ===== KEY SYSTEM UI (ДВА ПОЛЯ: ID и API KEY) =====
+        -- ===== KEY SYSTEM UI (ДВА ПОЛЯ) =====
         local KeyFrame = Instance.new("Frame")
         KeyFrame.Size = UDim2.new(0, 0, 0, 0)
         KeyFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -248,7 +461,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         KeyTitle.TextSize = 16
         KeyTitle.ZIndex = 51
 
-        -- Поле "Platoboost ID"
+        -- Platoboost ID
         local IdLabel = Instance.new("TextLabel", KeyFrame)
         IdLabel.Size = UDim2.new(1, -40, 0, 16)
         IdLabel.Position = UDim2.new(0, 20, 0, 50)
@@ -273,7 +486,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         Instance.new("UICorner", IdInput).CornerRadius = UDim.new(0, 6)
         Instance.new("UIStroke", IdInput).Color = Color3.fromRGB(60, 60, 60)
 
-        -- Поле "API Key"
+        -- API Key
         local ApiLabel = Instance.new("TextLabel", KeyFrame)
         ApiLabel.Size = UDim2.new(1, -40, 0, 16)
         ApiLabel.Position = UDim2.new(0, 20, 0, 112)
@@ -298,7 +511,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         Instance.new("UICorner", ApiInput).CornerRadius = UDim.new(0, 6)
         Instance.new("UIStroke", ApiInput).Color = Color3.fromRGB(60, 60, 60)
 
-        -- Кнопки "Get Key" и "Check Key"
+        -- Кнопки
         local GetKeyBtn = Instance.new("TextButton", KeyFrame)
         GetKeyBtn.Size = UDim2.new(0, 125, 0, 36)
         GetKeyBtn.Position = UDim2.new(0.5, -130, 0, 175)
@@ -333,7 +546,6 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         KeyStatus.TextXAlignment = Enum.TextXAlignment.Center
         KeyStatus.ZIndex = 51
 
-        -- Анимация появления
         TweenService:Create(KeyFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
             Size = UDim2.new(0, 300, 0, 250),
             Position = UDim2.new(0.5, -150, 0.5, -125)
@@ -364,19 +576,15 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
             KeyStatus.Text = "Проверка ключа..."
             KeyStatus.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-            -- Попытка реального HTTP-запроса
+            -- Попытка реального запроса (или заглушка)
             local success, result
             if syn and syn.request then
-                -- Некоторые эксплоиты имеют syn.request
                 success, result = pcall(function()
                     return syn.request({
                         Url = "https://api.platoboost.com/v1/validate",
                         Method = "POST",
                         Headers = {["Content-Type"] = "application/json"},
-                        Body = HttpService:JSONEncode({
-                            projectId = id,
-                            apiKey = apiKey
-                        })
+                        Body = HttpService:JSONEncode({ projectId = id, apiKey = apiKey })
                     })
                 end)
             elseif http_request then
@@ -385,19 +593,13 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
                         Url = "https://api.platoboost.com/v1/validate",
                         Method = "POST",
                         Headers = {["Content-Type"] = "application/json"},
-                        Body = HttpService:JSONEncode({
-                            projectId = id,
-                            apiKey = apiKey
-                        })
+                        Body = HttpService:JSONEncode({ projectId = id, apiKey = apiKey })
                     })
                 end)
             elseif HttpPostAsync then
                 success, result = pcall(function()
                     return game:HttpPostAsync("https://api.platoboost.com/v1/validate",
-                        HttpService:JSONEncode({
-                            projectId = id,
-                            apiKey = apiKey
-                        }),
+                        HttpService:JSONEncode({ projectId = id, apiKey = apiKey }),
                         Enum.HttpContentType.ApplicationJson, false)
                 end)
             else
@@ -422,7 +624,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
                     KeyStatus.TextColor3 = Color3.fromRGB(255, 85, 85)
                 end
             else
-                -- Заглушка, если HTTP не работает
+                -- Заглушка
                 if #id >= 3 and #apiKey >= 3 then
                     KeyStatus.Text = "Ключ действителен (оффлайн-режим)!"
                     KeyStatus.TextColor3 = Color3.fromRGB(85, 255, 127)
@@ -444,8 +646,120 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
 
     Window.MainFrame = Frame_2
 
+    -- ===== ВКЛАДКИ =====
     function Window:CreateTab(text, iconName)
-        -- ... код вкладок без изменений ...
+        local Tab = {}
+        local isFirstTab = (#Window.Tabs == 0)
+        
+        local TabBtn = Instance.new("TextButton")
+        TabBtn.Size = UDim2.new(0, 110, 0, 32); TabBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+        TabBtn.BackgroundTransparency = tabTransparency
+        TabBtn.Text = ""; TabBtn.AutoButtonColor = false; TabBtn.ClipsDescendants = true; TabBtn.Parent = TabContainer
+        Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 6)
+        Instance.new("UIStroke", TabBtn).Color = Color3.fromRGB(51, 51, 51)
+        
+        AddContent(TabBtn, text, iconName, Color3.fromRGB(237, 232, 248), true)
+
+        local TabLine = Instance.new("Frame")
+        TabLine.Size = UDim2.new(1, -20, 0, 2); TabLine.Position = UDim2.new(0.5, 0, 1, -2)
+        TabLine.AnchorPoint = Vector2.new(0.5, 1); TabLine.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        TabLine.BorderSizePixel = 0; TabLine.Visible = isFirstTab; TabLine.Parent = TabBtn
+        TabLine.ZIndex = 5
+
+        local neonGlowTab = Instance.new("Frame")
+        neonGlowTab.Size = UDim2.new(1, 0, 0, 8); neonGlowTab.Position = UDim2.new(0.5, 0, 1, 3)
+        neonGlowTab.AnchorPoint = Vector2.new(0.5, 1); neonGlowTab.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        neonGlowTab.BackgroundTransparency = 0.7; neonGlowTab.BorderSizePixel = 0; neonGlowTab.Parent = TabLine
+        Instance.new("UICorner", neonGlowTab).CornerRadius = UDim.new(1, 0)
+
+        local Scroll = Instance.new("ScrollingFrame")
+        Scroll.Size = UDim2.new(1, 0, 1, 0); Scroll.BackgroundTransparency = 1
+        Scroll.BorderSizePixel = 0; Scroll.ScrollBarThickness = 2; Scroll.Parent = Window.MainFrame
+        Scroll.Visible = isFirstTab; Scroll.ZIndex = 3
+
+        local layout = Instance.new("UIListLayout", Scroll)
+        layout.Padding = UDim.new(0, 6); layout.HorizontalAlignment = Enum.HorizontalAlignment.Center; layout.SortOrder = Enum.SortOrder.LayoutOrder
+        local pad = Instance.new("UIPadding", Scroll); pad.PaddingTop = UDim.new(0, 6)
+
+        table.insert(Window.Tabs, Scroll)
+        table.insert(Window.TabButtons, TabBtn)
+        table.insert(Window.TabLines, TabLine)
+
+        TabBtn.MouseButton1Click:Connect(function()
+            for i, s in ipairs(Window.Tabs) do 
+                s.Visible = (s == Scroll) 
+                Window.TabLines[i].Visible = (s == Scroll)
+            end
+        end)
+
+        function Tab:CreateToggle(text, neonColor, defaultState, iconName, callback)
+            if type(iconName) == "function" then callback = iconName; iconName = nil end
+            local state = defaultState or false
+            local actualColor = GetColor(neonColor)
+            
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -12, 0, 32); btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            btn.BackgroundTransparency = hasBackground and 0.5 or 0
+            btn.Text = ""; btn.AutoButtonColor = false; btn.Parent = Scroll
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+            Instance.new("UIStroke", btn).Color = Color3.fromRGB(51, 51, 51)
+
+            local content = AddContent(btn, text, iconName, state and actualColor or Color3.fromRGB(112, 112, 112), false)
+
+            local neonLine = Instance.new("Frame")
+            neonLine.Size = UDim2.new(1, -20, 0, 2); neonLine.Position = UDim2.new(0.5, 0, 1, -2)
+            neonLine.AnchorPoint = Vector2.new(0.5, 1); neonLine.BackgroundColor3 = actualColor
+            neonLine.Visible = state; neonLine.Parent = btn
+            
+            local neonGlow = Instance.new("Frame")
+            neonGlow.Size = UDim2.new(1, 0, 0, 8); neonGlow.Position = UDim2.new(0.5, 0, 1, 3)
+            neonGlow.AnchorPoint = Vector2.new(0.5, 1); neonGlow.BackgroundColor3 = actualColor
+            neonGlow.BackgroundTransparency = 0.7; neonGlow.BorderSizePixel = 0; neonGlow.Parent = neonLine
+            Instance.new("UICorner", neonGlow).CornerRadius = UDim.new(1, 0)
+
+            btn.MouseButton1Click:Connect(function()
+                state = not state
+                neonLine.Visible = state
+                local clr = state and actualColor or Color3.fromRGB(112, 112, 112)
+                for _, obj in pairs(content:GetChildren()) do
+                    if obj:IsA("TextLabel") or obj:IsA("ImageLabel") then obj.TextColor3 = clr; obj.ImageColor3 = clr end
+                end
+                if callback then callback(state) end
+            end)
+        end
+
+        function Tab:CreateButton(text, iconName, callback)
+            if type(iconName) == "function" then callback = iconName; iconName = nil end
+            
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -12, 0, 32); btn.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            btn.BackgroundTransparency = hasBackground and 0.5 or 0
+            btn.Text = ""; btn.AutoButtonColor = false; btn.ClipsDescendants = true; btn.Parent = Scroll
+            
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+            Instance.new("UIStroke", btn).Color = Color3.fromRGB(51, 51, 51)
+
+            AddContent(btn, text, iconName, Color3.fromRGB(237, 232, 248), false)
+
+            btn.MouseButton1Down:Connect(function()
+                local wave = Instance.new("Frame")
+                wave.BackgroundColor3 = isClassicTheme and Color3.fromRGB(255, 255, 255) or selectedTheme
+                wave.BackgroundTransparency = 0.8; wave.BorderSizePixel = 0
+                wave.Position = UDim2.new(0.5, 0, 0.5, 0); wave.AnchorPoint = Vector2.new(0.5, 0.5)
+                wave.Size = UDim2.new(0, 0, 0, 0); wave.ZIndex = btn.ZIndex + 1
+                Instance.new("UICorner", wave).CornerRadius = UDim.new(1, 0); wave.Parent = btn
+
+                local tween = TweenService:Create(wave, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    Size = UDim2.new(0, 150, 0, 150), BackgroundTransparency = 1
+                })
+                tween:Play()
+                tween.Completed:Connect(function() wave:Destroy() end)
+            end)
+
+            btn.MouseButton1Click:Connect(function() if callback then callback() end end)
+        end
+
+        return Tab
     end
     
     return Window
