@@ -66,7 +66,6 @@ local function GetAsset(folderName, githubFolder, fileName)
     return getcustomasset(path)
 end
 
--- Поиск ассета по базовому имени с перебором расширений
 local function ResolveAsset(folderName, githubFolder, baseName, extensions)
     for _, ext in ipairs(extensions) do
         local fileName = baseName .. ext
@@ -138,16 +137,16 @@ end
 -- ===== ГЛАВНАЯ ФУНКЦИЯ =====
 function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bgName, options)
     local keySystemEnabled = true
-    local defaultPlatoboostId = ""
-    local defaultPlatoboostApiKey = ""
+    local platoboostId = "000000"
+    local platoboostApiKey = ""
 
     if options ~= nil then
         if type(options) == "table" then
             if options.keySystem == false then
                 keySystemEnabled = false
             end
-            defaultPlatoboostId = options.platoboostId or ""
-            defaultPlatoboostApiKey = options.platoboostApiKey or ""
+            platoboostId = options.platoboostId or platoboostId
+            platoboostApiKey = options.platoboostApiKey or platoboostApiKey
         elseif type(options) == "boolean" then
             keySystemEnabled = options
         end
@@ -225,7 +224,6 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
 
     Instance.new("UICorner", Frame_1).CornerRadius = UDim.new(0, 14)
     
-    -- Фон (если есть)
     if hasBackground and resolvedBgAsset then
         local isVideo = resolvedBgFileName and (string.match(string.lower(resolvedBgFileName), "%.mp4$") or string.match(string.lower(resolvedBgFileName), "%.webm$"))
         local BackgroundContainer = Instance.new(isVideo and "VideoFrame" or "ImageLabel")
@@ -247,7 +245,6 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         Instance.new("UICorner", BackgroundContainer).CornerRadius = UDim.new(0, 14)
     end
 
-    -- Gradient stroke
     local stroke1 = Instance.new("UIStroke", Frame_1)
     stroke1.Thickness = 2
     stroke1.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
@@ -267,7 +264,6 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
     Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0); Shadow.ImageTransparency = 0.6
     Shadow.ScaleType = Enum.ScaleType.Slice; Shadow.SliceCenter = Rect.new(24, 24, 276, 276); Shadow.Parent = Frame_1
 
-    -- Внутренняя панель контента
     local Frame_2 = Instance.new("Frame")
     Frame_2.Position = UDim2.new(0, 127, 0, 53); Frame_2.Size = UDim2.new(1, -140, 1, -64)
     Frame_2.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -276,7 +272,6 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
     Instance.new("UICorner", Frame_2).CornerRadius = UDim.new(0, 16)
     local stroke2 = Instance.new("UIStroke", Frame_2); stroke2.Color = Color3.fromRGB(51, 51, 51); stroke2.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-    -- Водяной знак
     local Frame_11 = Instance.new("Frame")
     Frame_11.Position = UDim2.new(0, 6, 1, -46); Frame_11.Size = UDim2.new(0, 118, 0, 37)
     Frame_11.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -285,7 +280,6 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
     Instance.new("UICorner", Frame_11).CornerRadius = UDim.new(0, 11)
     local stroke11 = Instance.new("UIStroke", Frame_11); stroke11.Color = Color3.fromRGB(51, 51, 51); stroke11.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-    -- Контейнер вкладок
     local TabContainer = Instance.new("Frame", Frame_1)
     TabContainer.Size = UDim2.new(0, 110, 1, 0); TabContainer.Position = UDim2.new(0, 6, 0, 57); TabContainer.BackgroundTransparency = 1
     TabContainer.ZIndex = 2
@@ -312,7 +306,6 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         end
     end)
 
-    -- Кнопки управления
     local MinimizeBtn = Instance.new("TextButton", Frame_1)
     MinimizeBtn.Position = UDim2.new(1, -97, 0, 10); MinimizeBtn.Size = UDim2.new(0, 42, 0, 31); MinimizeBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     MinimizeBtn.Text = "•"; MinimizeBtn.TextColor3 = Color3.fromRGB(245, 236, 0); MinimizeBtn.TextSize = 30; MinimizeBtn.ZIndex = 17
@@ -406,7 +399,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         Frame_1.Visible = false; task.wait(0.5); ScreenGui:Destroy()
     end)
 
-    -- ===== АНИМАЦИЯ И КЛЮЧ-СИСТЕМА =====
+    -- ===== АНИМАЦИЯ И КЛЮЧ-СИСТЕМА (СТАРЫЙ UI, НО С ID И API ИЗ OPTIONS) =====
     task.spawn(function()
         TweenService:Create(IntroLabel, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
         TweenService:Create(IntroGlow, TweenInfo.new(0.5), {TextTransparency = 0.5}):Play()
@@ -435,7 +428,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
             return
         end
         
-        -- ===== KEY SYSTEM UI (ДВА ПОЛЯ) =====
+        -- ===== СТАРЫЙ UI КЛЮЧА (только одно поле для ключа) =====
         local KeyFrame = Instance.new("Frame")
         KeyFrame.Size = UDim2.new(0, 0, 0, 0)
         KeyFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -452,69 +445,29 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         KeyStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
         local KeyTitle = Instance.new("TextLabel", KeyFrame)
-        KeyTitle.Size = UDim2.new(1, 0, 0, 30)
-        KeyTitle.Position = UDim2.new(0, 0, 0, 10)
+        KeyTitle.Size = UDim2.new(1, 0, 0, 40)
         KeyTitle.BackgroundTransparency = 1
-        KeyTitle.Text = "Platoboost Key System"
+        KeyTitle.Text = "Key System"
         KeyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
         KeyTitle.Font = Enum.Font.GothamBold
-        KeyTitle.TextSize = 16
+        KeyTitle.TextSize = 18
         KeyTitle.ZIndex = 51
 
-        -- Platoboost ID
-        local IdLabel = Instance.new("TextLabel", KeyFrame)
-        IdLabel.Size = UDim2.new(1, -40, 0, 16)
-        IdLabel.Position = UDim2.new(0, 20, 0, 50)
-        IdLabel.BackgroundTransparency = 1
-        IdLabel.Text = "Platoboost ID:"
-        IdLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-        IdLabel.Font = Enum.Font.Gotham
-        IdLabel.TextSize = 12
-        IdLabel.TextXAlignment = Enum.TextXAlignment.Left
-        IdLabel.ZIndex = 51
+        local KeyInput = Instance.new("TextBox", KeyFrame)
+        KeyInput.Size = UDim2.new(0, 260, 0, 36)
+        KeyInput.Position = UDim2.new(0.5, -130, 0, 50)
+        KeyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        KeyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+        KeyInput.PlaceholderText = "Enter Key..."
+        KeyInput.Font = Enum.Font.Gotham
+        KeyInput.TextSize = 14
+        KeyInput.ZIndex = 51
+        Instance.new("UICorner", KeyInput).CornerRadius = UDim.new(0, 6)
+        Instance.new("UIStroke", KeyInput).Color = Color3.fromRGB(60, 60, 60)
 
-        local IdInput = Instance.new("TextBox", KeyFrame)
-        IdInput.Size = UDim2.new(0, 260, 0, 32)
-        IdInput.Position = UDim2.new(0.5, -130, 0, 70)
-        IdInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        IdInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-        IdInput.PlaceholderText = "Введите ID проекта"
-        IdInput.Text = defaultPlatoboostId
-        IdInput.Font = Enum.Font.Gotham
-        IdInput.TextSize = 14
-        IdInput.ZIndex = 51
-        Instance.new("UICorner", IdInput).CornerRadius = UDim.new(0, 6)
-        Instance.new("UIStroke", IdInput).Color = Color3.fromRGB(60, 60, 60)
-
-        -- API Key
-        local ApiLabel = Instance.new("TextLabel", KeyFrame)
-        ApiLabel.Size = UDim2.new(1, -40, 0, 16)
-        ApiLabel.Position = UDim2.new(0, 20, 0, 112)
-        ApiLabel.BackgroundTransparency = 1
-        ApiLabel.Text = "Platoboost API Key:"
-        ApiLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-        ApiLabel.Font = Enum.Font.Gotham
-        ApiLabel.TextSize = 12
-        ApiLabel.TextXAlignment = Enum.TextXAlignment.Left
-        ApiLabel.ZIndex = 51
-
-        local ApiInput = Instance.new("TextBox", KeyFrame)
-        ApiInput.Size = UDim2.new(0, 260, 0, 32)
-        ApiInput.Position = UDim2.new(0.5, -130, 0, 132)
-        ApiInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        ApiInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-        ApiInput.PlaceholderText = "Введите API ключ"
-        ApiInput.Text = defaultPlatoboostApiKey
-        ApiInput.Font = Enum.Font.Gotham
-        ApiInput.TextSize = 14
-        ApiInput.ZIndex = 51
-        Instance.new("UICorner", ApiInput).CornerRadius = UDim.new(0, 6)
-        Instance.new("UIStroke", ApiInput).Color = Color3.fromRGB(60, 60, 60)
-
-        -- Кнопки
         local GetKeyBtn = Instance.new("TextButton", KeyFrame)
         GetKeyBtn.Size = UDim2.new(0, 125, 0, 36)
-        GetKeyBtn.Position = UDim2.new(0.5, -130, 0, 175)
+        GetKeyBtn.Position = UDim2.new(0.5, -130, 0, 96)
         GetKeyBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
         GetKeyBtn.Text = "Get Key"
         GetKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -526,7 +479,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
 
         local CheckKeyBtn = Instance.new("TextButton", KeyFrame)
         CheckKeyBtn.Size = UDim2.new(0, 125, 0, 36)
-        CheckKeyBtn.Position = UDim2.new(0.5, 5, 0, 175)
+        CheckKeyBtn.Position = UDim2.new(0.5, 5, 0, 96)
         CheckKeyBtn.BackgroundColor3 = selectedTheme
         CheckKeyBtn.Text = "Check Key"
         CheckKeyBtn.TextColor3 = Color3.fromRGB(20, 20, 20)
@@ -537,18 +490,17 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
 
         local KeyStatus = Instance.new("TextLabel", KeyFrame)
         KeyStatus.Size = UDim2.new(1, 0, 0, 20)
-        KeyStatus.Position = UDim2.new(0, 0, 0, 220)
+        KeyStatus.Position = UDim2.new(0, 0, 0, 140)
         KeyStatus.BackgroundTransparency = 1
-        KeyStatus.Text = ""
+        KeyStatus.Text = "Platoboost API | ID: " .. platoboostId
         KeyStatus.TextColor3 = Color3.fromRGB(120, 120, 120)
         KeyStatus.Font = Enum.Font.Gotham
         KeyStatus.TextSize = 11
-        KeyStatus.TextXAlignment = Enum.TextXAlignment.Center
         KeyStatus.ZIndex = 51
 
         TweenService:Create(KeyFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 300, 0, 250),
-            Position = UDim2.new(0.5, -150, 0.5, -125)
+            Size = UDim2.new(0, 300, 0, 170),
+            Position = UDim2.new(0.5, -150, 0.5, -85)
         }):Play()
 
         local platoboostLink = "https://platoboost.com/" 
@@ -565,10 +517,9 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         end)
 
         CheckKeyBtn.MouseButton1Click:Connect(function()
-            local id = IdInput.Text
-            local apiKey = ApiInput.Text
-            if id == "" or apiKey == "" then
-                KeyStatus.Text = "Заполните оба поля!"
+            local key = KeyInput.Text
+            if key == "" then
+                KeyStatus.Text = "Введите ключ!"
                 KeyStatus.TextColor3 = Color3.fromRGB(255, 85, 85)
                 return
             end
@@ -576,7 +527,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
             KeyStatus.Text = "Проверка ключа..."
             KeyStatus.TextColor3 = Color3.fromRGB(255, 255, 255)
 
-            -- Попытка реального запроса (или заглушка)
+            -- Попытка реального запроса с ID и API ключом из настроек
             local success, result
             if syn and syn.request then
                 success, result = pcall(function()
@@ -584,7 +535,11 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
                         Url = "https://api.platoboost.com/v1/validate",
                         Method = "POST",
                         Headers = {["Content-Type"] = "application/json"},
-                        Body = HttpService:JSONEncode({ projectId = id, apiKey = apiKey })
+                        Body = HttpService:JSONEncode({
+                            key = key,
+                            projectId = platoboostId,
+                            apiKey = platoboostApiKey
+                        })
                     })
                 end)
             elseif http_request then
@@ -593,13 +548,21 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
                         Url = "https://api.platoboost.com/v1/validate",
                         Method = "POST",
                         Headers = {["Content-Type"] = "application/json"},
-                        Body = HttpService:JSONEncode({ projectId = id, apiKey = apiKey })
+                        Body = HttpService:JSONEncode({
+                            key = key,
+                            projectId = platoboostId,
+                            apiKey = platoboostApiKey
+                        })
                     })
                 end)
             elseif HttpPostAsync then
                 success, result = pcall(function()
                     return game:HttpPostAsync("https://api.platoboost.com/v1/validate",
-                        HttpService:JSONEncode({ projectId = id, apiKey = apiKey }),
+                        HttpService:JSONEncode({
+                            key = key,
+                            projectId = platoboostId,
+                            apiKey = platoboostApiKey
+                        }),
                         Enum.HttpContentType.ApplicationJson, false)
                 end)
             else
@@ -624,8 +587,8 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
                     KeyStatus.TextColor3 = Color3.fromRGB(255, 85, 85)
                 end
             else
-                -- Заглушка
-                if #id >= 3 and #apiKey >= 3 then
+                -- Заглушка (если HTTP не работает) — проверка длины ключа
+                if #key >= 5 then
                     KeyStatus.Text = "Ключ действителен (оффлайн-режим)!"
                     KeyStatus.TextColor3 = Color3.fromRGB(85, 255, 127)
                     task.wait(1)
