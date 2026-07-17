@@ -102,6 +102,19 @@ local function AddContent(parent, text, iconName, color, isTab)
     end
 
     if iconName and iconName ~= "" then
+        -- === ИЗМЕНЕНИЕ: принудительно заменяем .ico на .png ===
+        local iconNamePng
+        if string.match(iconName, "%.ico$") then
+            iconNamePng = string.gsub(iconName, "%.ico$", ".png")
+        elseif string.match(iconName, "%.") then
+            iconNamePng = iconName  -- другое расширение оставляем как есть (или всё равно .png?)
+            -- Если нужно ВСЕ иконки только в PNG, раскомментируй следующую строку:
+            -- iconNamePng = string.gsub(iconName, "%.[^.]+$", ".png")
+        else
+            iconNamePng = iconName .. ".png"
+        end
+        -- =====================================================
+        
         local iconImg = Instance.new("ImageLabel")
         iconImg.BackgroundTransparency = 1
         iconImg.Size = UDim2.new(0, 16, 0, 16)
@@ -109,7 +122,7 @@ local function AddContent(parent, text, iconName, color, isTab)
         iconImg.Parent = contentFrame
         
         task.spawn(function()
-            local asset = GetAsset("LuminorIcons", "Icons", iconName)
+            local asset = GetAsset("LuminorIcons", "Icons", iconNamePng)
             if asset and asset ~= "" then iconImg.Image = asset end
         end)
     end
@@ -117,7 +130,20 @@ local function AddContent(parent, text, iconName, color, isTab)
     return contentFrame
 end
 
-function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bgName)
+-- === ИЗМЕНЕНИЕ: добавлен параметр options (keySystem) ===
+function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bgName, options)
+    local keySystemEnabled = true  -- по умолчанию ключ-система включена
+    if options ~= nil then
+        if type(options) == "table" then
+            if options.keySystem == false then
+                keySystemEnabled = false
+            end
+        elseif type(options) == "boolean" then
+            keySystemEnabled = options
+        end
+    end
+    -- ========================================================
+
     local Window = { Tabs = {}, TabButtons = {}, TabLines = {} }
     
     local themeKey = themeName and string.lower(themeName) or "classic"
@@ -354,7 +380,7 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         Frame_1.Visible = false; task.wait(0.5); ScreenGui:Destroy()
     end)
 
-    -- === АНИМАЦИЯ И КЛЮЧ СИСТЕМА ===
+    -- === АНИМАЦИЯ И КЛЮЧ СИСТЕМА (с учётом keySystemEnabled) ===
     task.spawn(function()
         TweenService:Create(IntroLabel, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
         TweenService:Create(IntroGlow, TweenInfo.new(0.5), {TextTransparency = 0.5}):Play()
@@ -363,6 +389,26 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         TweenService:Create(IntroGlow, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
         task.wait(0.5)
         IntroLabel:Destroy()
+
+        -- Функция появления главного окна (используется и без ключа, и после проверки)
+        local function ShowMainUI()
+            Frame_1.Visible = true
+            local finalSize = UDim2.new(0, 338, 0, 301)
+            local finalPos = UDim2.new(0.5, -169, 0.5, -150)
+            
+            Frame_1.Size = UDim2.new(0, 0, 0, 0)
+            Frame_1.Position = UDim2.new(0.5, 0, 0.5, 0)
+            
+            TweenService:Create(Frame_1, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Size = finalSize,
+                Position = finalPos
+            }):Play()
+        end
+
+        if not keySystemEnabled then
+            ShowMainUI()
+            return
+        end
         
         -- Сборка Key System UI
         local KeyFrame = Instance.new("Frame")
@@ -424,15 +470,17 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         CheckKeyBtn.ZIndex = 51
         Instance.new("UICorner", CheckKeyBtn).CornerRadius = UDim.new(0, 6)
 
+        -- === ИЗМЕНЕНИЕ: Platoboost + ID ===
         local KeyStatus = Instance.new("TextLabel", KeyFrame)
         KeyStatus.Size = UDim2.new(1, 0, 0, 20)
         KeyStatus.Position = UDim2.new(0, 0, 0, 140)
         KeyStatus.BackgroundTransparency = 1
-        KeyStatus.Text = "Powered by Platoboost"
+        KeyStatus.Text = "Platoboost API | ID: 000000"   -- <-- здесь свой ID
         KeyStatus.TextColor3 = Color3.fromRGB(120, 120, 120)
         KeyStatus.Font = Enum.Font.Gotham
         KeyStatus.TextSize = 11
         KeyStatus.ZIndex = 51
+        -- =====================================
 
         TweenService:Create(KeyFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
             Size = UDim2.new(0, 300, 0, 170),
@@ -453,20 +501,6 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
             end
         end)
 
-        local function ShowMainUI()
-            Frame_1.Visible = true
-            local finalSize = UDim2.new(0, 338, 0, 301)
-            local finalPos = UDim2.new(0.5, -169, 0.5, -150)
-            
-            Frame_1.Size = UDim2.new(0, 0, 0, 0)
-            Frame_1.Position = UDim2.new(0.5, 0, 0.5, 0)
-            
-            TweenService:Create(Frame_1, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Size = finalSize,
-                Position = finalPos
-            }):Play()
-        end
-
         CheckKeyBtn.MouseButton1Click:Connect(function()
             local keyText = KeyInput.Text
             if keyText == "" then
@@ -479,8 +513,6 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
             KeyStatus.TextColor3 = Color3.fromRGB(255, 255, 255)
 
             task.delay(0.5, function()
-                -- Для реального Platoboost тут нужен HTTP-запрос. 
-                -- Это заглушка, валидирует любой ключ длиннее 5 символов.
                 if string.len(keyText) >= 5 then 
                     KeyStatus.Text = "Key Validated!"
                     KeyStatus.TextColor3 = Color3.fromRGB(85, 255, 127)
