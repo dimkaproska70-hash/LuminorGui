@@ -654,7 +654,15 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         end)
 
         function Tab:CreateToggle(text, neonColor, defaultState, iconName, callback)
-            if type(iconName) == "function" then callback = iconName; iconName = nil end
+            -- Умный парсинг аргументов (если пропущен цвет, состояние или иконка)
+            if type(neonColor) == "function" then
+                callback = neonColor; neonColor = nil; defaultState = false; iconName = nil
+            elseif type(defaultState) == "function" then
+                callback = defaultState; defaultState = false; iconName = nil
+            elseif type(iconName) == "function" then
+                callback = iconName; iconName = nil
+            end
+            
             local state = defaultState or false
             local actualColor = GetColor(neonColor)
             
@@ -687,6 +695,8 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
                 end
                 if callback then callback(state) end
             end)
+            
+            if callback then task.spawn(callback, state) end
         end
 
         function Tab:CreateButton(text, iconName, callback)
@@ -721,6 +731,11 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
         end
 
         function Tab:CreateSlider(text, min, max, default, callback)
+            -- Если юзер пропустил аргумент default
+            if type(default) == "function" then
+                callback = default; default = min
+            end
+            
             local value = math.clamp(default or min, min, max)
             
             local SliderFrame = Instance.new("Frame")
@@ -753,7 +768,10 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
             ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
             ValueLabel.Parent = SliderFrame
             
-            local TrackContainer = Instance.new("Frame")
+            -- ИСПРАВЛЕНИЕ ХИТБОКСА (Заменен Frame на TextButton)
+            local TrackContainer = Instance.new("TextButton")
+            TrackContainer.Text = ""
+            TrackContainer.AutoButtonColor = false
             TrackContainer.Size = UDim2.new(1, -24, 0, 20)
             TrackContainer.Position = UDim2.new(0, 12, 0, 24)
             TrackContainer.BackgroundTransparency = 1
@@ -857,13 +875,22 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
                     updateSlider(input)
                 end
             end)
+            
+            if callback then task.spawn(callback, value) end
         end
 
-        -- ===== ДОБАВЛЕННАЯ ФУНКЦИЯ DROPDOWN =====
         function Tab:CreateDropdown(text, options, default, neonColor, iconName, callback)
-            if type(iconName) == "function" then callback = iconName; iconName = nil end
+            -- Умный парсинг аргументов
+            if type(default) == "function" then
+                callback = default; default = nil; neonColor = nil; iconName = nil
+            elseif type(neonColor) == "function" then
+                callback = neonColor; neonColor = nil; iconName = nil
+            elseif type(iconName) == "function" then
+                callback = iconName; iconName = nil
+            end
+            
             local actualColor = GetColor(neonColor) or Color3.fromRGB(192, 132, 252)
-            local selected = default or (options and options[1]) or ""
+            local selected = type(default) ~= "function" and default or (options and options[1]) or ""
             local isDropped = false
 
             local DropContainer = Instance.new("Frame")
@@ -941,6 +968,8 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
                     if callback then callback(selected) end
                 end)
             end
+            
+            if callback then task.spawn(callback, selected) end
         end
 
         return Tab
