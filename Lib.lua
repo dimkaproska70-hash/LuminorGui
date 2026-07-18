@@ -722,6 +722,145 @@ function LuminorLib:CreateWindow(titleText, uiName, watermarkText, themeName, bg
             btn.MouseButton1Click:Connect(function() if callback then callback() end end)
         end
 
+        function Tab:CreateSlider(text, min, max, default, callback)
+            local value = math.clamp(default or min, min, max)
+            
+            local SliderFrame = Instance.new("Frame")
+            SliderFrame.Size = UDim2.new(1, -12, 0, 50)
+            SliderFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+            SliderFrame.BackgroundTransparency = hasBackground and 0.5 or 0
+            SliderFrame.Parent = Scroll
+            Instance.new("UICorner", SliderFrame).CornerRadius = UDim.new(0, 8)
+            Instance.new("UIStroke", SliderFrame).Color = Color3.fromRGB(51, 51, 51)
+            
+            local Title = Instance.new("TextLabel")
+            Title.Position = UDim2.new(0, 12, 0, 8)
+            Title.Size = UDim2.new(1, -24, 0, 14)
+            Title.BackgroundTransparency = 1
+            Title.Text = text
+            Title.TextColor3 = Color3.fromRGB(150, 150, 150)
+            Title.Font = Enum.Font.GothamBold
+            Title.TextSize = 12
+            Title.TextXAlignment = Enum.TextXAlignment.Left
+            Title.Parent = SliderFrame
+            
+            local ValueLabel = Instance.new("TextLabel")
+            ValueLabel.Position = UDim2.new(0, 12, 0, 8)
+            ValueLabel.Size = UDim2.new(1, -24, 0, 14)
+            ValueLabel.BackgroundTransparency = 1
+            ValueLabel.Text = tostring(value)
+            ValueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            ValueLabel.Font = Enum.Font.GothamBold
+            ValueLabel.TextSize = 12
+            ValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+            ValueLabel.Parent = SliderFrame
+            
+            local TrackContainer = Instance.new("Frame")
+            TrackContainer.Size = UDim2.new(1, -24, 0, 20)
+            TrackContainer.Position = UDim2.new(0, 12, 0, 24)
+            TrackContainer.BackgroundTransparency = 1
+            TrackContainer.Parent = SliderFrame
+            
+            local Track = Instance.new("Frame")
+            Track.Size = UDim2.new(1, 0, 0, 6)
+            Track.Position = UDim2.new(0, 0, 0.5, -3)
+            Track.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            Track.Parent = TrackContainer
+            Instance.new("UICorner", Track).CornerRadius = UDim.new(1, 0)
+            
+            local Fill = Instance.new("Frame")
+            Fill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
+            Fill.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            Fill.Parent = Track
+            Instance.new("UICorner", Fill).CornerRadius = UDim.new(1, 0)
+            
+            local Knob = Instance.new("Frame")
+            Knob.Size = UDim2.new(0, 24, 0, 16)
+            Knob.Position = UDim2.new(1, 0, 0.5, 0)
+            Knob.AnchorPoint = Vector2.new(0.5, 0.5)
+            Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            Knob.Parent = Fill
+            Instance.new("UICorner", Knob).CornerRadius = UDim.new(1, 0)
+            
+            local GlassHighlight = Instance.new("UIGradient")
+            GlassHighlight.Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 200, 255))
+            })
+            GlassHighlight.Transparency = NumberSequence.new(0.3)
+            GlassHighlight.Rotation = 90
+            GlassHighlight.Enabled = false
+            GlassHighlight.Parent = Knob
+            
+            local dragging = false
+            
+            local function updateSlider(input)
+                local pos = input.Position.X
+                local trackSize = Track.AbsoluteSize.X
+                local trackPos = Track.AbsolutePosition.X
+                
+                local rawPercent = (pos - trackPos) / trackSize
+                local percent = math.clamp(rawPercent, 0, 1)
+                
+                value = math.floor(min + ((max - min) * percent))
+                ValueLabel.Text = tostring(value)
+                
+                TweenService:Create(Fill, TweenInfo.new(0.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    Size = UDim2.new(percent, 0, 1, 0)
+                }):Play()
+                
+                if rawPercent > 1 then
+                    local overshoot = math.clamp((rawPercent - 1) * trackSize, 0, 40)
+                    GlassHighlight.Enabled = true
+                    TweenService:Create(Knob, TweenInfo.new(0.1), {
+                        Size = UDim2.new(0, 24 + overshoot * 0.8, 0, 16 - overshoot * 0.15),
+                        BackgroundTransparency = 0.2
+                    }):Play()
+                elseif rawPercent < 0 then
+                    local overshoot = math.clamp((0 - rawPercent) * trackSize, 0, 40)
+                    GlassHighlight.Enabled = true
+                    TweenService:Create(Knob, TweenInfo.new(0.1), {
+                        Size = UDim2.new(0, 24 + overshoot * 0.8, 0, 16 - overshoot * 0.15),
+                        BackgroundTransparency = 0.2
+                    }):Play()
+                else
+                    GlassHighlight.Enabled = false
+                    TweenService:Create(Knob, TweenInfo.new(0.1), {
+                        Size = UDim2.new(0, 24, 0, 16),
+                        BackgroundTransparency = 0
+                    }):Play()
+                end
+                
+                if callback then callback(value) end
+            end
+            
+            TrackContainer.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    dragging = true
+                    updateSlider(input)
+                end
+            end)
+            
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    if dragging then
+                        dragging = false
+                        GlassHighlight.Enabled = false
+                        TweenService:Create(Knob, TweenInfo.new(0.2, Enum.EasingStyle.Bounce), {
+                            Size = UDim2.new(0, 24, 0, 16),
+                            BackgroundTransparency = 0
+                        }):Play()
+                    end
+                end
+            end)
+            
+            UserInputService.InputChanged:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                    updateSlider(input)
+                end
+            end)
+        end
+
         return Tab
     end
     
